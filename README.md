@@ -1,29 +1,107 @@
-# X Profile Period Scraper - Showcase
+# X Profile Period Scraper Showcase
 
-This repository is a public showcase for a production Apify Actor that scrapes X (Twitter) profile posts inside user-defined date windows.
+[![Showcase](https://img.shields.io/badge/Repository-Showcase-blue)](https://github.com/shanskarBansal/x-profile-period-scraper-showcase)
+[![Status](https://img.shields.io/badge/Status-Active-success)](#status)
+[![Apify](https://img.shields.io/badge/Built%20For-Apify-black)](#what-this-project-demonstrates)
+
+A public, documentation-only showcase of a production Apify actor that scrapes X (Twitter) profile posts for a user-defined date range with strict ownership checks.
+
+## Jump To
+
+- [What this project demonstrates](#what-this-project-demonstrates)
+- [Choose your path](#choose-your-path)
+- [How the pipeline works](#how-the-pipeline-works)
+- [Try a sample run](#try-a-sample-run)
+- [Example output](#example-output)
+- [FAQ](#faq)
+- [Status](#status)
 
 ## What this project demonstrates
 
-- Profile-level scraping across one or many usernames
-- Strict date-range extraction in UTC
-- Ownership-safe filtering to prevent cross-profile contamination
-- Canonical redirect-safe post URLs (`https://x.com/i/status/<id>`)
-- Rich structured post output for analytics pipelines
-- Concurrency-aware crawling design for faster collection
+- Multi-profile scraping (`profileUrl` or `profileUrls[]`)
+- UTC date-window filtering (`fromDate` to `toDate`)
+- Profile ownership-safe filtering (prevents cross-profile leakage)
+- Canonical redirect-safe links: `https://x.com/i/status/<id>`
+- Structured JSON output suitable for analytics pipelines
+- Concurrent scraping strategy for higher throughput
 
-## Problem it solves
+## Choose your path
 
-When scraping social timelines, simple URL-pattern logic often leaks unrelated posts, especially when URLs can be rewritten or redirected. This implementation adds identity checks so only posts owned by the requested profile are stored.
+<details>
+<summary><b>I am reviewing this as a recruiter / hiring manager</b></summary>
 
-## Key design decisions
+- Problem solved: social-profile scraping reliability and data correctness
+- Key quality signal: ownership validation by profile identity, not URL text only
+- Engineering signal: output normalization + defensive input validation + stop-condition tuning
 
-1. GraphQL response parsing over DOM-only scraping
-2. Strong input validation for URL + date fields
-3. Profile ownership verification before persistence
-4. Adaptive stopping logic to avoid premature range cutoffs
-5. Output normalization for clean downstream usage
+</details>
 
-## Example output shape
+<details>
+<summary><b>I am an engineer evaluating implementation quality</b></summary>
+
+- Collection strategy: GraphQL timeline response parsing over DOM-only extraction
+- Filtering strategy: strict profile identity checks before persistence
+- Output strategy: normalized post object (`author`, `metrics`, `media`, `thumbnail`, redirect-safe URL)
+- Scalability strategy: profile concurrency + adaptive scrolling stop logic
+
+</details>
+
+<details>
+<summary><b>I want this customized for my use case</b></summary>
+
+Possible variants:
+- queue-based multi-account orchestration
+- CSV-first export workflow
+- webhook notifications per completed profile
+- cloud scheduling and periodic snapshots
+
+Open an issue in this repo with your use case.
+
+</details>
+
+## How the pipeline works
+
+```mermaid
+flowchart LR
+  A[Input: profile URL(s) + date range] --> B[Validate URL + date window]
+  B --> C[Open profile timeline]
+  C --> D[Parse GraphQL timeline responses]
+  D --> E[Ownership check per post]
+  E --> F[Date filter in UTC]
+  F --> G[Normalize output + thumbnail + redirectLink]
+  G --> H[Dataset + OUTPUT summary]
+```
+
+## Try a sample run
+
+<details>
+<summary><b>Sample input JSON</b></summary>
+
+```json
+{
+  "profileUrls": ["https://x.com/narendramodi", "https://x.com/jack"],
+  "fromDate": "2026-01-01",
+  "toDate": "2026-02-01",
+  "profileConcurrency": 2,
+  "maxPosts": 0,
+  "maxScrolls": 300,
+  "scrollDelayMs": 1000
+}
+```
+
+</details>
+
+<details>
+<summary><b>What you should expect in results</b></summary>
+
+- `requestedProfileUsername` and `requestedProfileUserId` attached per row
+- `redirectLink` points to `x.com/i/status/<id>`
+- `thumbnail` present when media exists
+- out-of-range and foreign-owner posts excluded
+
+</details>
+
+## Example output
 
 ```json
 {
@@ -50,17 +128,30 @@ When scraping social timelines, simple URL-pattern logic often leaks unrelated p
 }
 ```
 
-## Technology stack
+## FAQ
 
-- Node.js
-- Apify SDK
-- Crawlee + Playwright
+<details>
+<summary><b>Why use redirectLink if postUrl already exists?</b></summary>
+
+`postUrl` is human-readable. `redirectLink` (`x.com/i/status/<id>`) is canonical and safer for ownership-consistent resolution.
+
+</details>
+
+<details>
+<summary><b>Can this run for multiple profiles in one execution?</b></summary>
+
+Yes. Use `profileUrls[]` and tune `profileConcurrency`.
+
+</details>
+
+<details>
+<summary><b>Does it support private/protected profiles?</b></summary>
+
+No, public scraping cannot access private/protected profile content.
+
+</details>
 
 ## Status
 
-- Production actor maintained in a separate repository
-- This repository intentionally contains only documentation for portfolio/showcase purposes
-
-## Contact
-
-If you want the full implementation details, deployment pattern, or a custom variant (e.g., queue-based multi-account orchestration), open an issue.
+- Production actor exists in a separate repository (private)
+- This repository is intentionally README-only for public showcase/portfolio
